@@ -1,1 +1,32 @@
+name: Günlük Kanal Güncelleyici
 
+on:
+  schedule:
+    - cron: '0 */12 * * *' # Her 12 saatte bir otomatik çalışır
+  workflow_dispatch: # İstersen GitHub sitesinden tek tıkla manuel de çalıştırabilirsin
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repoyu Kopyala
+        uses: actions/checkout@v3
+
+      - name: Python Kurulumu
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Gerekli Kütüphaneleri Yükle
+        run: pip install aiohttp
+
+      - name: Python Betiğini Çalıştır
+        run: python fetch_channels.py
+
+      - name: Değişiklikleri Kaydet ve Gönder
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "bot@actions.local"
+          git add channels.json channels.js
+          git commit -m "Otomatik kanal listesi guncellendi [skip ci]" || exit 0
+          git push
