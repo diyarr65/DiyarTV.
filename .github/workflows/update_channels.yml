@@ -2,8 +2,12 @@ name: Günlük Kanal Güncelleyici
 
 on:
   schedule:
-    - cron: '0 */12 * * *' # Her 12 saatte bir otomatik çalışır
-  workflow_dispatch: # İstersen GitHub sitesinden tek tıkla manuel de çalıştırabilirsin
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+# GitHub Actions'ın dosyaları otomatik güncelleyebilmesi için gerekli izin
+permissions:
+  contents: write
 
 jobs:
   update:
