@@ -99,12 +99,16 @@ def main():
     print("Kanallar test ediliyor, lütfen bekleyin...\n")
     working_channels = asyncio.run(filter_working_channels(raw_channels))
     
-    js_content = f"window.channelData = {json.dumps(working_channels, ensure_ascii=False, indent=4)};"
+    # 1. TV'nin uzaktan okuyacağı SAF JSON dosyasını oluştur (Yeni)
+    with open("channels.json", "w", encoding="utf-8") as f:
+        json.dump(working_channels, f, ensure_ascii=False, indent=4)
     
+    # 2. İnternet kesilirse TV'nin yerel yedek olarak kullanacağı JS dosyasını oluştur (Eski)
+    js_content = f"window.channelData = {json.dumps(working_channels, ensure_ascii=False, indent=4)};"
     with open("channels.js", "w", encoding="utf-8") as f:
         f.write(js_content)
         
-    print(f"\nİşlem Tamamlandı! Toplam {len(working_channels)} adet çalışan kanal 'channels.js' dosyasına yazıldı.")
+    print(f"\nİşlem Tamamlandı! Toplam {len(working_channels)} adet çalışan kanal hem 'channels.json' hem de 'channels.js' olarak kaydedildi.")
 
 if __name__ == "__main__":
     main()
