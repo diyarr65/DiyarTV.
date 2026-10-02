@@ -2,12 +2,17 @@ import asyncio
 import aiohttp
 import json
 
-# Test Edilecek Kanal Listesi
+# Optimize Edilmiş, Daha Hızlı ve Kararlı Kanal Listesi
 raw_channels = [
     {
         "name": "TRT 1",
         "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/TRT_1_logo_%282021-%29.svg/960px-TRT_1_logo_%282021-%29.svg.png",
         "url": "https://tv-trt1.medya.trt.com.tr/master.m3u8"
+    },
+    {
+        "name": "TRT Haber",
+        "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/TRT_Haber_logo_%282021-%29.svg/960px-TRT_Haber_logo_%282021-%29.svg.png",
+        "url": "https://tv-trthaber.medya.trt.com.tr/master.m3u8"
     },
     {
         "name": "TRT Çocuk",
@@ -23,16 +28,6 @@ raw_channels = [
         "name": "ATV",
         "logo": "https://i.imgur.com/HyVUwFC.png",
         "url": "https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/atv/atv_1080p.m3u8"
-    },
-    {
-        "name": "Kanal D",
-        "logo": "https://i.imgur.com/9o1atM6.png",
-        "url": "https://demiroren.daioncdn.net/kanald/kanald.m3u8?app=kanald_web&ce=3"
-    },
-    {
-        "name": "Star TV",
-        "logo": "https://i.imgur.com/9O3DHRB.png",
-        "url": "https://dogus.daioncdn.net/startv/startv_720p.m3u8?&sid=8l4w3lst4co5&app=a20ac41e-bdc3-4aa1-934d-26b484480ac9&ce=3"
     },
     {
         "name": "TV 8",
@@ -60,18 +55,13 @@ raw_channels = [
         "url": "https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/a2tv/a2tv.m3u8"
     },
     {
-        "name": "Minika Go",
-        "logo": "https://i.imgur.com/qIoipDq.png",
-        "url": "https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/minikago/minikago.m3u8"
-    },
-    {
-        "name": "EuroStar TV",
-        "logo": "https://i.imgur.com/kb165Ot.png",
-        "url": "https://canlitvulusal.xyz/live/eurostar/index.m3u8"
+        "name": "TGRT Haber",
+        "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/TGRT_Haber_logo.png/600px-TGRT_Haber_logo.png",
+        "url": "https://tgrt.medya.ihhlas.com.tr/tgrthaber/sdt/live.m3u8"
     }
 ]
 
-TIMEOUT = 7.0 # Süreyi 7 saniyeye çıkardık ki yavaş yanıt veren kanallar da elemesin
+TIMEOUT = 5.0
 
 async def check_stream(session, channel):
     url = channel.get("url")
@@ -96,19 +86,17 @@ async def filter_working_channels(all_channels):
         return [ch for ch in results if ch is not None]
 
 def main():
-    print("Kanallar test ediliyor, lütfen bekleyin...\n")
+    print("Optimize kanallar test ediliyor...\n")
     working_channels = asyncio.run(filter_working_channels(raw_channels))
     
-    # Saf JSON dosyasını güncelle
     with open("channels.json", "w", encoding="utf-8") as f:
         json.dump(working_channels, f, ensure_ascii=False, indent=4)
     
-    # Yerel yedek JS dosyasını güncelle
     js_content = f"window.channelData = {json.dumps(working_channels, ensure_ascii=False, indent=4)};"
     with open("channels.js", "w", encoding="utf-8") as f:
         f.write(js_content)
         
-    print(f"\nİşlem Tamamlandı! Toplam {len(working_channels)} adet kanal kaydedildi.")
+    print(f"\nİşlem Tamamlandı! Toplam {len(working_channels)} kararlı kanal kaydedildi.")
 
 if __name__ == "__main__":
     main()
