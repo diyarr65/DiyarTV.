@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DİYAR TV</title>
+  <!-- HLS Video Oyuncusu Kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- FontAwesome İkon Seti -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Kanal Verileri -->
+  <script src="channels.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #000000;
+      --bg-sidebar: rgba(18, 19, 26, 0.92);
+      --bg-card: rgba(28, 29, 39, 0.7);
+      --bg-card-hover: rgba(38, 40, 55, 0.9);
+      --accent-color: #00e676;
+      --accent-glow: rgba(0, 230, 118, 0.4);
+      --text-main: #ffffff;
+      --text-muted: #8e92a8;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --sidebar-width: 340px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      outline: none;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* --- VİDEO OYNATICI (TAM EKRAN YAYIN) --- */
+    #player-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* --- SOL PANEL (GİZLENEBİLİR / FLYOUT SIDEBAR) --- */
+    #sidebar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--bg-sidebar);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      transform: translateX(-100%); /* Varsayılan olarak gizli */
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Panel Görünür Olduğunda */
+    #sidebar.visible {
+      transform: translateX(0);
+    }
+
+    .brand-header {
+      padding: 22px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #00e676, #00b0ff);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: 900;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    .brand-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #ffffff, #a5a6f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Kanal Listesi */
+    #channel-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    #channel-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    #channel-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    .channel-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      background: var(--bg-card);
+      border: 1.5px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+
+    /* Kumanda Odaklanma (Focus) & Mouse Hover Stili */
+    .channel-item:hover, .channel-item:focus {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-color);
+      transform: translateX(4px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .channel-item.active {
+      background: rgba(0, 230, 118, 0.15);
+      border-color: var(--accent-color);
+    }
+
+    .channel-logo-wrapper {
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 14px;
+      padding: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+
+    .channel-logo-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .channel-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .channel-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .channel-tag {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* --- YÜKLENİYOR SPINNER --- */
+    #loader {
+      position: absolute;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      z-index: 15;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px 30px;
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .spinner {
+      width: 46px;
+      height: 46px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: var(--accent-color);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* --- TV BİLGİ PANELİ (OSD) --- */
+    #osd {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      right: 30px;
+      background: rgba(18, 19, 26, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 18px 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.4s ease;
+      pointer-events: none;
+    }
+
+    #osd.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .osd-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .osd-logo {
+      width: 50px;
+      height: 50px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 5px;
+      object-fit: contain;
+    }
+
+    .osd-details h2 {
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+
+    .osd-details p {
+      font-size: 0.85rem;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-color);
+    }
+
+    .osd-right {
+      text-align: right;
+    }
+
+    .osd-time {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .osd-date {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      #sidebar {
+        width: 85vw;
+      }
+      #osd {
+        bottom: 15px;
+        left: 15px;
+        right: 15px;
+        padding: 12px 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SAĞ / ANA PANEL: VİDEO PLAYER (TAM EKRAN) -->
+  <div id="player-container">
+    <div id="loader">
+      <div class="spinner"></div>
+      <span style="font-size: 0.85rem; color: var(--text-muted);">Yayın Yükleniyor...</span>
+    </div>
+
+    <video id="video" autoplay playsinline></video>
+
+    <!-- TV Bilgi Ekranı (OSD) -->
+    <div id="osd">
+      <div class="osd-left">
+        <img id="osd-logo" class="osd-logo" src="" alt="Kanal">
+        <div class="osd-details">
+          <h2 id="osd-title">Kanal Adı</h2>
+          <p><span class="live-dot"></span> Canlı Yayın • 1080p HD</p>
+        </div>
+      </div>
+      <div class="osd-right">
+        <div id="osd-clock" class="osd-time">00:00</div>
+        <div class="osd-date">DiyarTV Canlı</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOL PANEL: GİZLENEBİLİR KANAL LİSTESİ -->
+  <div id="sidebar">
+    <div class="brand-header">
+      <div class="brand-logo"><i class="fa-solid fa-tv"></i></div>
+      <div class="brand-title">DİYAR TV</div>
+    </div>
+
+    <div id="channel-list"></div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const loader = document.getElementById('loader');
+    const osd = document.getElementById('osd');
+    const osdLogo = document.getElementById('osd-logo');
+    const osdTitle = document.getElementById('osd-title');
+    const osdClock = document.getElementById('osd-clock');
+    const sidebar = document.getElementById('sidebar');
+    const channelListContainer = document.getElementById('channel-list');
+    
+    let hls = null;
+    let osdTimeout = null;
+    let sidebarTimeout = null;
+
+    // Dijital Saati Güncelle
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      osdClock.textContent = `${hours}:${minutes}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // OSD Ekranını Göster
+    function showOSD(title, logo) {
+      osdTitle.textContent = title;
+      osdLogo.src = logo || 'https://via.placeholder.com/50/ffffff/000000?text=TV';
+      osd.classList.add('show');
+
+      clearTimeout(osdTimeout);
+      osdTimeout = setTimeout(() => {
+        osd.classList.remove('show');
+      }, 4000);
+    }
+
+    /* --- SIDEBAR GİZLE/GÖSTER MANTIĞI --- */
+    function showSidebar() {
+      sidebar.classList.add('visible');
+      
+      // Kumanda odağını aktif kanala ver
+      const activeChannel = document.querySelector('.channel-item.active') || document.querySelector('.channel-item');
+      if (activeChannel && document.activeElement !== activeChannel) {
+        activeChannel.focus();
+      }
+
+      resetSidebarTimer();
+    }
+
+    function hideSidebar() {
+      sidebar.classList.remove('visible');
+    }
+
+    function resetSidebarTimer() {
+      clearTimeout(sidebarTimeout);
+      sidebarTimeout = setTimeout(() => {
+        hideSidebar();
+      }, 4000); // 4 saniye işlem yapılmazsa paneli gizle
+    }
+
+    // Kumanda ve Fare Etkileşim Dinleyicileri
+    document.addEventListener('keydown', (e) => {
+      if (!sidebar.classList.contains('visible')) {
+        // Panel kapalıyken herhangi bir tuşa basılırsa paneli aç
+        showSidebar();
+      } else {
+        // Panel açıkken her tuş basımında sayacı sıfırla
+        resetSidebarTimer();
+
+        // Kumandadan 'Sağ Yön', 'Geri/ESC' veya 'Backspace' tuşuna basılırsa paneli kapat
+        if (e.key === 'ArrowRight' || e.key === 'Escape' || e.key === 'Backspace') {
+          hideSidebar();
+        }
+      }
+    });
+
+    // Fare hareketinde paneli görünür yap
+    document.addEventListener('mousemove', () => {
+      showSidebar();
+    });
+
+    // HIZLANDIRILMIŞ Yayın Oynatma Mantığı
+    function playChannel(url, name, logo, element) {
+      loader.style.display = 'flex';
+      showOSD(name, logo);
+
+      // Aktif kanal vurgusunu güncelle
+      document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+      if (element) element.classList.add('active');
+
+      if (hls) {
+        hls.destroy();
+      }
+
+      if (Hls.isSupported()) {
+        // Hızlı Yükleme ve Düşük Gecikme Konfigürasyonu
+        hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,           // Düşük gecikmeli canlı yayın modu
+          backBufferLength: 30,
+          maxBufferLength: 10,            // İlk başta az veri tamponlayıp yayını HEMEN başlatır
+          maxMaxBufferLength: 20,
+          manifestLoadingTimeOut: 4000,   // Cevap vermeyen ölü linklerde max 4sn bekler
+          manifestLoadingMaxRetry: 1,     // Ölü linkte tekrar deneyip zaman kaybetmez
+          levelLoadingTimeOut: 4000,
+          fragLoadingTimeOut: 8000,
+          startFragPrefetch: true         // İlk parçayı önceden çeker
+        });
+
+        hls.loadSource(url);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+          loader.style.display = 'none';
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            loader.style.display = 'none';
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              hls.startLoad();
+            } else {
+              hls.destroy();
+            }
+          }
+        });
+
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+          video.play();
+          loader.style.display = 'none';
+        });
+      }
+    }
+
+    // Kanal Listesini Çiz
+    function renderChannels(channels) {
+      channelListContainer.innerHTML = '';
+      
+      if (!channels || channels.length === 0) {
+        channelListContainer.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Kanal Bulunamadı</div>';
+        return;
+      }
+
+      channels.forEach((channel, index) => {
+        const item = document.createElement('div');
+        item.className = 'channel-item';
+        item.tabIndex = 0; // TV Kumandası odağı için şart
+
+        item.innerHTML = `
+          <div class="channel-logo-wrapper">
+            <img src="${channel.logo}" alt="${channel.name}" onerror="this.src='https://via.placeholder.com/40/222228/ffffff?text=TV'">
+          </div>
+          <div class="channel-info">
+            <span class="channel-name">${channel.name}</span>
+            <span class="channel-tag">Canlı Yayın</span>
+          </div>
+        `;
+
+        // Tıklama ve Kumanda OK Tuşu
+        item.addEventListener('click', () => {
+          playChannel(channel.url, channel.name, channel.logo, item);
+        });
+
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            playChannel(channel.url, channel.name, channel.logo, item);
+          }
+        });
+
+        channelListContainer.appendChild(item);
+
+        // Uygulama açılışında ilk kanalı başlat
+        if (index === 0) {
+          playChannel(channel.url, channel.name, channel.logo, item);
+        }
+      });
+    }
+
+    // Uygulama Başlatıcı
+    document.addEventListener('DOMContentLoaded', () => {
+      renderChannels(window.channelData || []);
+      
+      // İlk açılışta kanalları göstermek için paneli aç ve 4sn sonra gizle
+      showSidebar();
+    });
+  </script>
+</body>
+</html>
