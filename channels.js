@@ -1,5 +1,10 @@
 window.channelData = [
     {
+        "name": "Kanal D",
+        "logo": "https://i.imgur.com/9o1atM6.png",
+        "url": "https://demiroren.daioncdn.net/kanald/kanald.m3u8?app=kanald_web&ce=3"
+    },
+    {
         "name": "TRT 1",
         "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/TRT_1_logo_%282021-%29.svg/960px-TRT_1_logo_%282021-%29.svg.png",
         "url": "https://tv-trt1.medya.trt.com.tr/master.m3u8"

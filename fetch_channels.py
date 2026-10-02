@@ -2,8 +2,13 @@ import asyncio
 import aiohttp
 import json
 
-# Optimize Edilmiş, Daha Hızlı ve Kararlı Kanal Listesi
+# Kanal D ve Diğer Kararlı Kanallar Listesi
 raw_channels = [
+    {
+        "name": "Kanal D",
+        "logo": "https://i.imgur.com/9o1atM6.png",
+        "url": "https://demiroren.daioncdn.net/kanald/kanald.m3u8?app=kanald_web&ce=3"
+    },
     {
         "name": "TRT 1",
         "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/TRT_1_logo_%282021-%29.svg/960px-TRT_1_logo_%282021-%29.svg.png",
@@ -61,7 +66,7 @@ raw_channels = [
     }
 ]
 
-TIMEOUT = 5.0
+TIMEOUT = 6.0 # Kanal D'nin yanıt vermesi için süreyi biraz esnettik
 
 async def check_stream(session, channel):
     url = channel.get("url")
@@ -86,7 +91,7 @@ async def filter_working_channels(all_channels):
         return [ch for ch in results if ch is not None]
 
 def main():
-    print("Optimize kanallar test ediliyor...\n")
+    print("Kanallar test ediliyor...\n")
     working_channels = asyncio.run(filter_working_channels(raw_channels))
     
     with open("channels.json", "w", encoding="utf-8") as f:
@@ -96,7 +101,7 @@ def main():
     with open("channels.js", "w", encoding="utf-8") as f:
         f.write(js_content)
         
-    print(f"\nİşlem Tamamlandı! Toplam {len(working_channels)} kararlı kanal kaydedildi.")
+    print(f"\nİşlem Tamamlandı! Toplam {len(working_channels)} kanal kaydedildi.")
 
 if __name__ == "__main__":
     main()
