@@ -28,10 +28,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Android SDK Kurulumu
-        uses: android-actions/setup-android@v3
-
       - name: Cordova ile HTML'i APK'ya Dönüştür
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           npm install -g cordova
           cordova create build_app com.diyartv.app DiyarTV
@@ -39,7 +39,7 @@ jobs:
           cordova platform add android
           rm -rf www/*
           cp ../index.html ../channels.js ../channels.json www/ 2>/dev/null || cp ../index.html www/
-          cordova build android
+          cordova build android --no-telemetry
 
       - name: APK Dosyasini Indirilebilir Yap (Artifact)
         uses: actions/upload-artifact@v4
